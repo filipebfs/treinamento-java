@@ -3,58 +3,105 @@ package br.com.radixeng.motorBanco.Motor;
 import java.util.ArrayList;
 import java.util.List;
 
-abstract public class Conta {
-    protected List<Operacao> operacoes = new ArrayList<>();
+import javax.persistence.DiscriminatorColumn;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
+import javax.persistence.Inheritance;
+import javax.persistence.InheritanceType;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 
-    public double getSaldo() {
-        double saldo = 0.0;
-        
-        // for(int i = 0; i < operacoes.size() ; i++) {
-        //     saldo += operacoes.get(i).getValor();
-        // }
+import javax.persistence.DiscriminatorType;
 
-        for (Operacao transacao : operacoes) {
-            saldo += transacao.getValor();
-        }
+import br.com.radixeng.motorBanco.Motor.exceptions.ContaInvalidaException;
+import br.com.radixeng.motorBanco.Motor.exceptions.SaldoContaException;
 
-        return saldo;
-    }
+@Entity
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name="tipoConta",  discriminatorType = DiscriminatorType.INTEGER)
+abstract public class Conta 
+{
+   @Id   
+   @GeneratedValue
+   protected Long id;
+   @ManyToOne
+   protected Cliente cliente;
+   protected Integer tipoConta;
+   @OneToMany
+   protected List<Operacao> operacoes = new ArrayList<>();
 
-    public List<Operacao> getTransacoes() {
-        return operacoes;
-    }
+   public Cliente getCliente()
+   {
+      return this.cliente;
+   }
 
-    private void operacao(double valorOperacao, Cliente usuarioOrigem, Cliente usuarioDestino) {
-        Operacao novaOperacao = new Operacao(valorOperacao, DataBanco.agora(), usuarioOrigem, usuarioDestino);
-        this.operacoes.add(novaOperacao);
-    }
+   public double getSaldo() {
+      double saldo = 0.0;
 
-    public void sacar(double valor, Cliente usuarioOrigem, Cliente usuarioDestino) {
-        this.operacao(-valor, usuarioOrigem, usuarioDestino);
-    }
+      for (Operacao transacao : operacoes) {
+         saldo += transacao.getValor();
+      }
 
-    public void depositar(double valor, Cliente usuarioOrigem, Cliente usuarioDestino) {
-        this.operacao(valor, usuarioOrigem, usuarioDestino);
-    }
+      return saldo;
+   }
 
-    public static Conta criarConta(String tipoConta) throws Exception {
-        if (tipoConta.equals(ContaCorrente.class.getName())) {
-            return new ContaCorrente();
-        } else if (tipoConta.equals(ContaPoupanca.class.getName())) {
-            return new ContaPoupanca();
-        } else if (tipoConta.equals(ContaInvestimento.class.getName())) {
-            return new ContaInvestimento();
-        } else {
-            throw new Exception("Tipo de conta não permitido pelo sistema.");
-        }
-    }
+   public List<Operacao> getTransacoes() {
+      return operacoes;
+   }
 
-    public static List<String> tiposDeConta() {
-        List<String> tiposDeConta = new ArrayList<>();
-        tiposDeConta.add(ContaCorrente.class.getName());
-        tiposDeConta.add(ContaPoupanca.class.getName());
-        tiposDeConta.add(ContaInvestimento.class.getName());
+   private void operacao(double valorOperacao, Cliente usuarioOrigem, Cliente usuarioDestino) 
+   throws SaldoContaException 
+   {
+      if (valorOperacao == 0) return;
 
-        return tiposDeConta;
-    }
+      if (valorOperacao < 0)
+      {
+         double saldo = this.getSaldo();
+
+         if ((saldo - valorOperacao) < 0) throw new SaldoContaException();
+      }
+
+      Operacao novaOperacao = new Operacao(valorOperacao, DataBanco.agora(), usuarioOrigem, usuarioDestino);
+      this.operacoes.add(novaOperacao);
+   }
+
+   public void sacar(double valor, Cliente usuarioDestino) 
+   throws SaldoContaException 
+   {
+      this.operacao(-valor, this.getCliente(), usuarioDestino);
+   }
+
+   public void depositar(double valor, Cliente usuarioOrigem) 
+   throws SaldoContaException 
+   {
+      this.operacao(valor, usuarioOrigem, this.getCliente());
+   }
+
+   public static Conta criarConta(String tipoConta, Cliente cliente) throws ContaInvalidaException 
+   {
+      Conta conta;
+      if (tipoConta.equals(TipoConta.ContaCorrenteValorTipo)) {
+         conta = new ContaCorrente();
+      } else if (tipoConta.equals(TipoConta.ContaPoupancaValorTipo)) {
+         conta = new ContaPoupanca();
+      } else if (tipoConta.equals(TipoConta.ContaInvestimentoValorTipo)) {
+         conta = new ContaInvestimento();
+      } else {
+         throw new ContaInvalidaException("Tipo de conta não permitido pelo sistema.");
+      }
+
+      conta.cliente = cliente;
+      return conta;
+   }
+
+   public static List<String> tiposDeConta() {
+      List<String> tiposDeConta = new ArrayList<>();
+      tiposDeConta.add(TipoConta.ContaCorrenteValorTipo);
+      tiposDeConta.add(TipoConta.ContaPoupancaValorTipo);
+      tiposDeConta.add(TipoConta.ContaInvestimentoValorTipo);
+
+      return tiposDeConta;
+   }
 }
+

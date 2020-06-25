@@ -1,5 +1,11 @@
 {
     "java.configuration.maven.userSettings": "",
-    "maven.executable.path": "../apache-maven-3.6.3/bin/mvn",
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "maven.executable.path": "c:/apache-maven-3.6.3/bin/mvn",
+   "java.configuration.updateBuildConfiguration": "interactive",
+   "files.exclude": {
+      "**/.classpath": true,
+      "**/.project": true,
+      "**/.settings": true,
+      "**/.factorypath": true
+   }
 }

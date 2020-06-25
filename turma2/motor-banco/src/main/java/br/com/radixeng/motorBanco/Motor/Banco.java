@@ -1,98 +1,100 @@
 package br.com.radixeng.motorBanco.Motor;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-public class Banco {
-    Map<String, Map<String, Conta>> repositorioContas = new HashMap<>();
+import br.com.radixeng.motorBanco.Motor.exceptions.ContaInvalidaException;
+import br.com.radixeng.motorBanco.Motor.exceptions.SaldoContaException;
 
-    private static Banco instancia;
+public class Banco 
+{
+   private IRepositorioConta repositorioContas;
 
-    private Banco() { }
-    
-    public static Banco getInstancia() {
-        if (instancia == null) {
-            instancia = new Banco();
-        }
+   private static Banco instancia;
 
-        return instancia;
-    }
-    
-    public void criarConta(Cliente usuario, String tipoConta) throws Exception {
-        if (repositorioContas.get(usuario.getIdentificador()) != null) {
-            Conta novaConta = Conta.criarConta(tipoConta);
-            repositorioContas.get(usuario.getIdentificador()).put(tipoConta, novaConta);
-        } else {
-            HashMap<String, Conta> conta = new HashMap<>();
-            Conta novaConta = Conta.criarConta(tipoConta);
-            conta.put(tipoConta, novaConta);
-            repositorioContas.put(usuario.getIdentificador(), conta);
-        }
-        
-    }
+   private Banco() {
+   }
 
+   public static Banco getInstancia(IRepositorioConta repositorioConta) 
+   {
+      if (instancia == null) {
+         instancia = new Banco();
+      }
 
-    public void sacar(double valor, Cliente usuario, String tipoConta, Cliente usuarioOrigem) {
-        Conta conta = obterConta(usuario, tipoConta);
-        conta.sacar(valor, usuarioOrigem, usuario);
-    }
+      instancia.repositorioContas = repositorioConta;
 
-    public void depositar(double valor, Cliente usuario, String tipoConta, Cliente usuarioOrigem) {
-        Conta conta = obterConta(usuario, tipoConta);
-        conta.depositar(valor, usuarioOrigem, usuario);
-    }
+      return instancia;
+   }
 
-    private Conta obterConta(Cliente usuario, String tipoConta) {
-        Conta conta = repositorioContas.get(usuario.getIdentificador()).get(tipoConta);
-        return conta;
-    }
+   public void criarConta(Cliente usuario, String tipoConta) 
+   throws ContaInvalidaException 
+   {
+      Conta conta = repositorioContas.get(usuario.getIdentificador(), tipoConta);
+      if (conta != null) 
+      {
+         throw new ContaInvalidaException("Conta já existente para o cliente "+ usuario.getIdentificador());
+      } 
+      else 
+      {
+         Conta novaConta = Conta.criarConta(tipoConta, usuario);
+         repositorioContas.put(novaConta);
+      }
+   }
 
-    public void transferir(double valor, Cliente usuarioOrigem, String tipoContaOrigem, Cliente usuarioDestino, String tipoContaDestino) {
-        this.sacar(valor, usuarioOrigem, tipoContaOrigem, usuarioDestino);
-        this.depositar(valor, usuarioDestino, tipoContaDestino, usuarioOrigem);
-    }
+   public void sacar(double valor, Cliente usuario, String tipoConta) 
+   throws SaldoContaException 
+   {
+      Conta conta = obterConta(usuario, tipoConta);
+      conta.sacar(valor, null);
+   }
 
-    public double saldo(Cliente usuario, String tipoConta){
-        return repositorioContas.get(usuario.getIdentificador()).get(tipoConta).getSaldo();
-    }
+   public void depositar(double valor, Cliente usuario, String tipoConta) 
+   throws SaldoContaException 
+   {
+      Conta conta = obterConta(usuario, tipoConta);
+      conta.depositar(valor, null);
+   }
 
-    public String consultarExtrato(Cliente usuario, String tipoConta, int intervalo){
-        String extrato = "--------EXTRATO--------\n";
+   private Conta obterConta(Cliente usuario, String tipoConta) 
+   {
+      Conta conta = repositorioContas.get(usuario.getIdentificador(), tipoConta);
+      return conta;
+   }
 
-        List<Operacao> operacoes = this.consultaExtrato(usuario, tipoConta, intervalo);
-        
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
-        for (Operacao operacao : operacoes) {
-            String data = dateFormat.format(operacao.getData());
-            extrato += data + " --> (" + operacao.getValor() + ")\n-----------------------\n";
-        }
+   public void transferir(double valor, Cliente usuarioOrigem, String tipoContaOrigem, Cliente usuarioDestino, String tipoContaDestino)
+   throws SaldoContaException 
+   {
+      Conta contaOrigem = obterConta(usuarioOrigem, tipoContaOrigem);
+      Conta contaDestino = obterConta(usuarioDestino, tipoContaDestino);
+      contaOrigem.sacar(valor, usuarioDestino);
+      contaDestino.depositar(valor, usuarioOrigem);
+   }
 
-        return extrato;
-    }
+   public double saldo(Cliente usuario, String tipoConta)
+   {
+      return repositorioContas.get(usuario.getIdentificador(), tipoConta).getSaldo();
+   }
 
-    public List<Operacao> consultaExtrato(Cliente usuario, String tipoConta, int intervalo) {
-        List<Operacao> extrato = new ArrayList<>();
+   public List<Operacao> consultaExtrato(Cliente usuario, String tipoConta, int intervalo) 
+   {
+      List<Operacao> extrato = new ArrayList<>();
 
-        Conta conta = obterConta(usuario, tipoConta);
-        
-        Date dateAgora = DataBanco.agora();
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(dateAgora);
-        calendar.add(Calendar.DAY_OF_MONTH, -intervalo);
-        Date dateFiltro = calendar.getTime();
-        
-        for (Operacao operacao : conta.getTransacoes()) {
-            if(operacao.getData().compareTo(dateFiltro) >= 0) {
-                extrato.add(operacao);
-            }
-        }
+      Conta conta = obterConta(usuario, tipoConta);
+      
+      Date dateAgora = DataBanco.agora();
+      Calendar calendar = Calendar.getInstance();
+      calendar.setTime(dateAgora);
+      calendar.add(Calendar.DAY_OF_MONTH, -intervalo);
+      Date dateFiltro = calendar.getTime();
+      
+      for (Operacao operacao : conta.getTransacoes()) {
+         if(operacao.getData().compareTo(dateFiltro) >= 0) {
+               extrato.add(operacao);
+         }
+      }
 
-        return extrato;
-    }
+      return extrato;
+   }
 }

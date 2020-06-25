@@ -1,5 +1,14 @@
 package br.com.radixeng.motorBanco.Motor;
 
-public class ContaCorrente extends Conta {
-    
+import javax.persistence.DiscriminatorValue;
+import javax.persistence.Entity;
+
+@Entity
+@DiscriminatorValue(TipoConta.ContaCorrenteValorTipo)
+public class ContaCorrente extends Conta 
+{
+   public ContaCorrente() {
+      super();
+      this.tipoConta = Integer.parseInt(TipoConta.ContaCorrenteValorTipo);
+   }    
 }

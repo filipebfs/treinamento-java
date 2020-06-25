@@ -3,30 +3,45 @@ package br.com.radixeng.motorBanco.Motor;
 import java.util.Calendar;
 import java.util.Date;
 
-public class ContaInvestimento extends Conta {
-    //Adicionar regra para que saques na conta de investimento só possam ser realizados 30 dias após o depósito (saque aniversário)
-    @Override
-    public void sacar(double valor, Cliente usuarioOrigem, Cliente usuarioDestino) {
-        double saldoDisponivel = 0;
-        
-        Date dateAgora = DataBanco.agora();
+import javax.persistence.DiscriminatorValue;
+import javax.persistence.Entity;
 
-        // Instant instant = dateAgora.toInstant();
-        // Date date30DiasAtras = Date.from(instant.minus(30, ChronoUnit.DAYS));
+import br.com.radixeng.motorBanco.Motor.exceptions.SaldoContaException;
 
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(dateAgora);
-        calendar.add(Calendar.DAY_OF_MONTH, -30);
-        Date date30DiasAtras = calendar.getTime();
+@Entity
+@DiscriminatorValue(TipoConta.ContaInvestimentoValorTipo)
+public class ContaInvestimento extends Conta 
+{
+   public ContaInvestimento() {
+      super();
+      this.tipoConta = Integer.parseInt(TipoConta.ContaInvestimentoValorTipo);
+   }
 
-        for (Operacao operacao : this.operacoes) {
-            if (operacao.getData().compareTo(date30DiasAtras) <= 0) {
-                saldoDisponivel += operacao.getValor();
-            }
-        }
+   @Override
+   public void sacar(double valor, Cliente usuarioDestino) 
+   throws SaldoContaException 
+   {
+      double saldoDisponivel = 0;
+      
+      Date dateAgora = DataBanco.agora();
 
-        if (valor <= saldoDisponivel) {
-            super.sacar(valor, usuarioOrigem, usuarioDestino);
-        }
-    }
+      // Instant instant = dateAgora.toInstant();
+      // Date date30DiasAtras = Date.from(instant.minus(30, ChronoUnit.DAYS));
+
+      Calendar calendar = Calendar.getInstance();
+      calendar.setTime(dateAgora);
+      calendar.add(Calendar.DAY_OF_MONTH, -30);
+      Date date30DiasAtras = calendar.getTime();
+
+      for (Operacao operacao : this.operacoes) {
+         if (operacao.getData().compareTo(date30DiasAtras) <= 0) {
+               saldoDisponivel += operacao.getValor();
+         }
+      }
+
+      if (valor > saldoDisponivel) 
+         throw new SaldoContaException("Conta investimento sem saldo dentro dos requisitos.");
+         
+      super.sacar(valor, usuarioDestino);
+   }
 }

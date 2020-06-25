@@ -17,118 +17,138 @@ import javax.ws.rs.core.Response;
 import br.com.radixeng.motorBanco.Motor.Banco;
 import br.com.radixeng.motorBanco.Motor.Cliente;
 import br.com.radixeng.motorBanco.Motor.Conta;
+import br.com.radixeng.motorBanco.Motor.IRepositorioUsuario;
 import br.com.radixeng.motorBanco.Motor.Operacao;
+import br.com.radixeng.motorBanco.Motor.exceptions.ContaInvalidaException;
+import br.com.radixeng.motorBanco.Motor.exceptions.SaldoContaException;
 
 class NovaContaRequest {
-    public String nome;
-    public String tipoConta;
+   public String nome;
+   public String tipoConta;
 }
 
 class OperacaoRequest {
-    public double valor;
-    public String identificadorDestino;
-    public String identificadorOrigem;
-    public String tipoContaOrigem;
-    public String tipoContaDestino;
+   public double valor;
+   public String identificadorDestino;
+   public String identificadorOrigem;
+   public String tipoContaOrigem;
+   public String tipoContaDestino;
 }
 
 class TipoContaResponse {
-    public List<String> tipos = new ArrayList<>();
+   public List<String> tipos = new ArrayList<>();
 }
 
 class ContaResponse {
-    public List<OperacaoResponse> operacoes = new ArrayList<>();
+   public List<OperacaoResponse> operacoes = new ArrayList<>();
 }
 
 class OperacaoResponse {
-    public double valor;
-    public Date data;
-    public String origem;
-    public String destino;
+   public double valor;
+   public Date data;
+   public String origem;
+   public String destino;
 }
 
 @Path("/")
-public class Servico {
-    private Banco motorBanco = Banco.getInstancia();
+public class Servico 
+{
+   public Servico() 
+   {
+      this.motorBanco = Banco.getInstancia();  //falta resolver injecao de dependencia
+   }
 
-    private static Map<String, Cliente> repositorioUsuarios = new HashMap<>();
+   private Banco motorBanco;
 
-    @Path("conta")
-    @POST
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response novaConta(NovaContaRequest request) {
-        Cliente cliente = new Cliente(request.nome) {
-        };
+   private IRepositorioUsuario repositorioUsuarios; //falta resolver injecao de dependencia
 
-        repositorioUsuarios.put(request.nome, cliente);
+   @Path("conta")
+   @POST
+   @Produces(MediaType.APPLICATION_JSON)
+   public Response novaConta(NovaContaRequest request) 
+   {
+      Cliente cliente = new Cliente(request.nome) {
+      };
 
-        try {
-            motorBanco.criarConta(cliente, request.tipoConta);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Response.status(400).build();
-        }
+      repositorioUsuarios.put(cliente);
 
-        return Response.accepted().build();
-    }
+      try 
+      {
+         motorBanco.criarConta(cliente, request.tipoConta);
+      } 
+      catch (ContaInvalidaException e) 
+      {
+         e.printStackTrace();
+         return Response.status(400).entity(e.getMessage()).build();
+      }
 
-    @POST
-    @Path("operacao")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response operacao(OperacaoRequest request) {
-        
-        if(request.identificadorDestino == null && request.tipoContaDestino == null) {
-            
-            if(request.valor < 0) {
-                motorBanco.sacar(-request.valor, repositorioUsuarios.get(request.identificadorOrigem), request.tipoContaOrigem, repositorioUsuarios.get(request.identificadorOrigem));
-            } else {
-                motorBanco.depositar(request.valor, repositorioUsuarios.get(request.identificadorOrigem), request.tipoContaOrigem, repositorioUsuarios.get(request.identificadorOrigem));
-            }
+      return Response.accepted().build();
+   }
 
-        } else if(request.valor >= 0 && request.identificadorDestino != null && request.tipoContaOrigem != null && request.tipoContaDestino != null) {
-            motorBanco.transferir(request.valor, repositorioUsuarios.get(request.identificadorOrigem), request.tipoContaOrigem, repositorioUsuarios.get(request.identificadorDestino), request.tipoContaDestino);
-        } else {
-            return Response.status(400).build();
-        }
+   @POST
+   @Path("operacao")
+   @Produces(MediaType.APPLICATION_JSON)
+   public Response operacao(OperacaoRequest request) throws SaldoContaException 
+   {
+      
+      if(request.identificadorDestino == null && request.tipoContaDestino == null) 
+      {         
+         if(request.valor < 0) {
+               motorBanco.sacar(-request.valor, repositorioUsuarios.get(request.identificadorOrigem), request.tipoContaOrigem);
+         } else {
+               motorBanco.depositar(request.valor, repositorioUsuarios.get(request.identificadorOrigem), request.tipoContaOrigem);
+         }
+      } 
+      else if(request.valor >= 0 && request.identificadorOrigem != null && request.identificadorDestino != null && request.tipoContaOrigem != null && request.tipoContaDestino != null) 
+      {
+         motorBanco.transferir(request.valor, repositorioUsuarios.get(request.identificadorOrigem), request.tipoContaOrigem, repositorioUsuarios.get(request.identificadorDestino), request.tipoContaDestino);
+      } 
+      else 
+      {
+         return Response.status(400).build();
+      }
 
-        return Response.accepted().build();
-    }
+      return Response.accepted().build();
+   }
 
-    @GET
-    @Path("/tipo-conta")
-    @Produces(MediaType.APPLICATION_JSON)
-    public TipoContaResponse tiposDeConta() {
-        TipoContaResponse response = new TipoContaResponse();
-        response.tipos = Conta.tiposDeConta();
+   @GET
+   @Path("/tipo-conta")
+   @Produces(MediaType.APPLICATION_JSON)
+   public TipoContaResponse tiposDeConta() 
+   {
+      TipoContaResponse response = new TipoContaResponse();
+      response.tipos = Conta.tiposDeConta();
 
-        return response;
-    }
+      return response;
+   }
 
-    @GET
-    @Path("/conta")
-    @Produces(MediaType.APPLICATION_JSON)
-    public ContaResponse obterConta(@QueryParam("identificador") String identificador, @QueryParam("tipoConta") String tipoConta, @QueryParam("intervalo") int intervalo) {
-        ContaResponse response = new ContaResponse();
+   @GET
+   @Path("/conta")
+   @Produces(MediaType.APPLICATION_JSON)
+   public ContaResponse obterConta(@QueryParam("identificador") String identificador, @QueryParam("tipoConta") String tipoConta, @QueryParam("intervalo") int intervalo) 
+   {
+      ContaResponse response = new ContaResponse();
 
-        List<Operacao> operacoesConta = motorBanco.consultaExtrato(repositorioUsuarios.get(identificador), tipoConta, intervalo);
-        
-        for (Operacao operacao : operacoesConta) {
-            OperacaoResponse operacaoResponse = new OperacaoResponse();
-            operacaoResponse.data = operacao.getData();
-            operacaoResponse.valor = operacao.getValor();
-            operacaoResponse.origem = operacao.getUsuarioOrigem().getIdentificador();
-            operacaoResponse.destino = operacao.getUsuarioDestino().getIdentificador();
-            
-            response.operacoes.add(operacaoResponse);
-        }
+      List<Operacao> operacoesConta = motorBanco.consultaExtrato(repositorioUsuarios.get(identificador), tipoConta, intervalo);
+      
+      for (Operacao operacao : operacoesConta) {
+         OperacaoResponse operacaoResponse = new OperacaoResponse();
+         operacaoResponse.data = operacao.getData();
+         operacaoResponse.valor = operacao.getValor();
+         operacaoResponse.origem = operacao.getUsuarioOrigem().getIdentificador();
+         operacaoResponse.destino = operacao.getUsuarioDestino().getIdentificador();
+         
+         response.operacoes.add(operacaoResponse);
+      }
 
-        return response;
-    }
+      return response;
+   }
 
-    @GET
-    @Path("helloWorld")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String hello() {
-        return "Hello World";
-    }
+   @GET
+   @Path("")
+   @Produces(MediaType.TEXT_PLAIN)
+   public String hello() 
+   {
+      return "Hello World";
+   }
 }

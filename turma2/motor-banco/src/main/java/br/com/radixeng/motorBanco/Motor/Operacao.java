@@ -2,10 +2,16 @@ package br.com.radixeng.motorBanco.Motor;
 
 import java.util.Date;
 
+import javax.persistence.Entity;
+import javax.persistence.ManyToMany;
+
+@Entity
 public class Operacao {
     private double valor;
     private Date data;
+    @ManyToMany
     private Cliente usuarioOrigem;
+    @ManyToMany
     private Cliente usuarioDestino;
 
     public Date getData() {

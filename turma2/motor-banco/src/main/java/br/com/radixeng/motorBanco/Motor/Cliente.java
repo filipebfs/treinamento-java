@@ -1,13 +1,19 @@
 package br.com.radixeng.motorBanco.Motor;
 
-abstract public class Cliente {
-    protected String identificador;
+import javax.persistence.Entity;
+import javax.persistence.Id;
 
-    public Cliente(String identificador) {
-        this.identificador = identificador;
-    }
+@Entity
+abstract public class Cliente 
+{
+   @Id
+   protected String identificador;
 
-    public String getIdentificador() {
-        return identificador;
-    }
+   public Cliente(String identificador) {
+      this.identificador = identificador;
+   }
+
+   public String getIdentificador() {
+      return identificador;
+   }
 }
