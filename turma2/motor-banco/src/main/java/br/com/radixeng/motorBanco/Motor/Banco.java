@@ -10,23 +10,12 @@ import br.com.radixeng.motorBanco.Motor.exceptions.SaldoContaException;
 
 public class Banco 
 {
-   private IRepositorioConta repositorioContas;
-
-   private static Banco instancia;
-
-   private Banco() {
-   }
-
-   public static Banco getInstancia(IRepositorioConta repositorioConta) 
+   public Banco(IRepositorioConta repositorioConta) 
    {
-      if (instancia == null) {
-         instancia = new Banco();
-      }
-
-      instancia.repositorioContas = repositorioConta;
-
-      return instancia;
+      this.repositorioContas = repositorioConta;
    }
+
+   private IRepositorioConta repositorioContas;
 
    public void criarConta(Cliente usuario, String tipoConta) 
    throws ContaInvalidaException 
@@ -43,33 +32,36 @@ public class Banco
       }
    }
 
-   public void sacar(double valor, Cliente usuario, String tipoConta) 
-   throws SaldoContaException 
+   public Operacao sacar(double valor, Cliente usuario, String tipoConta) 
+   throws SaldoContaException, ContaInvalidaException 
    {
       Conta conta = obterConta(usuario, tipoConta);
-      conta.sacar(valor, null);
+      return conta.sacar(valor, null);
    }
 
-   public void depositar(double valor, Cliente usuario, String tipoConta) 
-   throws SaldoContaException 
+   public Operacao depositar(double valor, Cliente usuario, String tipoConta) 
+   throws SaldoContaException, ContaInvalidaException 
    {
       Conta conta = obterConta(usuario, tipoConta);
-      conta.depositar(valor, null);
+      return conta.depositar(valor, null);
    }
 
-   private Conta obterConta(Cliente usuario, String tipoConta) 
+   private Conta obterConta(Cliente usuario, String tipoConta) throws ContaInvalidaException 
    {
       Conta conta = repositorioContas.get(usuario.getIdentificador(), tipoConta);
+      if (conta == null) throw new ContaInvalidaException();
       return conta;
    }
 
-   public void transferir(double valor, Cliente usuarioOrigem, String tipoContaOrigem, Cliente usuarioDestino, String tipoContaDestino)
-   throws SaldoContaException 
+   public List<Operacao> transferir(double valor, Cliente usuarioOrigem, String tipoContaOrigem, Cliente usuarioDestino, String tipoContaDestino)
+   throws SaldoContaException, ContaInvalidaException 
    {
       Conta contaOrigem = obterConta(usuarioOrigem, tipoContaOrigem);
       Conta contaDestino = obterConta(usuarioDestino, tipoContaDestino);
-      contaOrigem.sacar(valor, usuarioDestino);
-      contaDestino.depositar(valor, usuarioOrigem);
+      List<Operacao> operacoes = new ArrayList<>();
+      operacoes.add( contaOrigem.sacar(valor, usuarioDestino) );
+      operacoes.add( contaDestino.depositar(valor, usuarioOrigem) );
+      return operacoes;
    }
 
    public double saldo(Cliente usuario, String tipoConta)
@@ -77,7 +69,8 @@ public class Banco
       return repositorioContas.get(usuario.getIdentificador(), tipoConta).getSaldo();
    }
 
-   public List<Operacao> consultaExtrato(Cliente usuario, String tipoConta, int intervalo) 
+   public List<Operacao> consultaExtrato(Cliente usuario, String tipoConta, int intervalo)
+         throws ContaInvalidaException 
    {
       List<Operacao> extrato = new ArrayList<>();
 

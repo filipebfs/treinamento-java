@@ -2,6 +2,8 @@ package br.com.radixeng.motorBanco;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.HashMap;
+
 import org.junit.Test;
 
 import br.com.radixeng.motorBanco.Motor.*;
@@ -11,36 +13,50 @@ import br.com.radixeng.motorBanco.Motor.*;
  */
 public class AppTest 
 {
-    private Banco b = Banco.getInstancia();
-    private Cliente u = new Cliente("Julio Cesar") { };
-    private Cliente u2 = new Usuario("Teste");
-    
-    /**
-     * Instancia do banco da SDK deve sempre ser a mesma
-     */
-    @Test
-    public void instanciaDeBancoDeveSerAMesma() {
-        Banco b2 = Banco.getInstancia();
-        assertEquals(b, b2);
-    }
+   public AppTest() 
+   {      
+      this.b = new Banco(
+         new IRepositorioConta(){
+            private HashMap<String, Conta> rep = new HashMap<>();
+         
+            @Override
+            public void put(Conta conta) 
+            {
+               rep.put(conta.getCliente().getIdentificador()+conta.getTipoconta(), conta);
+            }
+         
+            @Override
+            public Conta get(String cliente, String tipoConta) 
+            {
+               return rep.get(cliente + tipoConta);
+            }
+         }
+      );
+   }
 
-    /**
-     * Ao criar uma conta o saldo deve iniciar com o valor 0
-     */
-    @Test
-    public void saldoDeContasDeveIniciarComZero() throws Exception {
-        b.criarConta(u, ContaInvestimento.class.getName());
-        b.criarConta(u, ContaCorrente.class.getName());
-        b.criarConta(u, ContaPoupanca.class.getName());
-        
-        b.criarConta(u2, ContaPoupanca.class.getName());
+   private Banco b;
 
-        assertEquals(0.0, b.saldo(u, ContaCorrente.class.getName()), 0.0); 
-        assertEquals(0.0, b.saldo(u, ContaCorrente.class.getName()), 0.0); 
-        assertEquals(0.0, b.saldo(u, ContaPoupanca.class.getName()), 0.0); 
-        assertEquals(0.0, b.saldo(u2, ContaPoupanca.class.getName()), 0.0); 
-    }
+   /**
+    * Ao criar uma conta o saldo deve iniciar com o valor 0
+    */
+   @Test
+   public void saldoDeContasDeveIniciarComZero() throws Exception 
+   {
+      Cliente u = new Cliente("Julio Cesar") { };
+      Cliente u2 = new Usuario("Teste");
 
-    // Exercício 18/06/2020
-    // Dar Continuidade aos testes do motor
+      b.criarConta(u, TipoConta.ContaInvestimentoValorTipo);
+      b.criarConta(u, TipoConta.ContaCorrenteValorTipo);
+      b.criarConta(u, TipoConta.ContaPoupancaValorTipo);
+      
+      b.criarConta(u2, TipoConta.ContaPoupancaValorTipo);
+
+      assertEquals(0.0, b.saldo(u, TipoConta.ContaInvestimentoValorTipo), 0.0); 
+      assertEquals(0.0, b.saldo(u, TipoConta.ContaCorrenteValorTipo), 0.0); 
+      assertEquals(0.0, b.saldo(u, TipoConta.ContaPoupancaValorTipo), 0.0); 
+      assertEquals(0.0, b.saldo(u2, TipoConta.ContaPoupancaValorTipo), 0.0); 
+   }
+
+   // Exercício 18/06/2020
+   // Dar Continuidade aos testes do motor
 }

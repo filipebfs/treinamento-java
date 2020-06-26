@@ -9,6 +9,6 @@ public class ContaCorrente extends Conta
 {
    public ContaCorrente() {
       super();
-      this.tipoConta = Integer.parseInt(TipoConta.ContaCorrenteValorTipo);
+      this.tipoConta = TipoConta.ContaCorrenteValorTipo;
    }    
 }

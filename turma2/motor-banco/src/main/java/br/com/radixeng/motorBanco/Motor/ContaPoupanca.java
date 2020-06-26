@@ -10,6 +10,6 @@ public class ContaPoupanca extends Conta
    public ContaPoupanca() 
    {
       super();
-      this.tipoConta = Integer.parseInt(TipoConta.ContaPoupancaValorTipo);
+      this.tipoConta = TipoConta.ContaPoupancaValorTipo;
    }    
 }

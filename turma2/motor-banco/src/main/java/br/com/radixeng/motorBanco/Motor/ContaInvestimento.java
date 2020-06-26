@@ -14,11 +14,11 @@ public class ContaInvestimento extends Conta
 {
    public ContaInvestimento() {
       super();
-      this.tipoConta = Integer.parseInt(TipoConta.ContaInvestimentoValorTipo);
+      this.tipoConta = TipoConta.ContaInvestimentoValorTipo;
    }
 
    @Override
-   public void sacar(double valor, Cliente usuarioDestino) 
+   public Operacao sacar(double valor, Cliente usuarioDestino) 
    throws SaldoContaException 
    {
       double saldoDisponivel = 0;
@@ -42,6 +42,6 @@ public class ContaInvestimento extends Conta
       if (valor > saldoDisponivel) 
          throw new SaldoContaException("Conta investimento sem saldo dentro dos requisitos.");
          
-      super.sacar(valor, usuarioDestino);
+      return super.sacar(valor, usuarioDestino);
    }
 }

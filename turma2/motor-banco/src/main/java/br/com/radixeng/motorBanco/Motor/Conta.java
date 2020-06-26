@@ -3,6 +3,8 @@ package br.com.radixeng.motorBanco.Motor;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.persistence.Access;
+import javax.persistence.Column;
 import javax.persistence.DiscriminatorColumn;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -27,13 +29,19 @@ abstract public class Conta
    protected Long id;
    @ManyToOne
    protected Cliente cliente;
-   protected Integer tipoConta;
+   @Column(insertable = false, updatable = false)
+   protected String tipoConta;
    @OneToMany
    protected List<Operacao> operacoes = new ArrayList<>();
 
    public Cliente getCliente()
    {
       return this.cliente;
+   }
+
+   public String getTipoconta()
+   {
+      return this.tipoConta;
    }
 
    public double getSaldo() {
@@ -50,10 +58,10 @@ abstract public class Conta
       return operacoes;
    }
 
-   private void operacao(double valorOperacao, Cliente usuarioOrigem, Cliente usuarioDestino) 
+   private Operacao operacao(double valorOperacao, Cliente usuarioOrigem, Cliente usuarioDestino) 
    throws SaldoContaException 
    {
-      if (valorOperacao == 0) return;
+      if (valorOperacao == 0) return null;
 
       if (valorOperacao < 0)
       {
@@ -64,18 +72,19 @@ abstract public class Conta
 
       Operacao novaOperacao = new Operacao(valorOperacao, DataBanco.agora(), usuarioOrigem, usuarioDestino);
       this.operacoes.add(novaOperacao);
+      return novaOperacao;
    }
 
-   public void sacar(double valor, Cliente usuarioDestino) 
+   public Operacao sacar(double valor, Cliente usuarioDestino) 
    throws SaldoContaException 
    {
-      this.operacao(-valor, this.getCliente(), usuarioDestino);
+      return this.operacao(-valor, this.getCliente(), usuarioDestino);
    }
 
-   public void depositar(double valor, Cliente usuarioOrigem) 
+   public Operacao depositar(double valor, Cliente usuarioOrigem) 
    throws SaldoContaException 
    {
-      this.operacao(valor, usuarioOrigem, this.getCliente());
+      return this.operacao(valor, usuarioOrigem, this.getCliente());
    }
 
    public static Conta criarConta(String tipoConta, Cliente cliente) throws ContaInvalidaException 

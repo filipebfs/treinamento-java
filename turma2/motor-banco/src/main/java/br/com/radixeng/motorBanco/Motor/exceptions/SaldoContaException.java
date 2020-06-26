@@ -3,7 +3,7 @@ package br.com.radixeng.motorBanco.Motor.exceptions;
 public class SaldoContaException extends Exception
 {
    public SaldoContaException() {
-      super();
+      super("Saldo insuficiente");
    }
 
    public SaldoContaException(String message) {

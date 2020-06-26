@@ -3,7 +3,7 @@ package br.com.radixeng.motorBanco.Motor.exceptions;
 public class ContaInvalidaException extends Exception 
 {
    public ContaInvalidaException() {
-      super();
+      super("Conta inválida");
    }
 
    public ContaInvalidaException(String message) {

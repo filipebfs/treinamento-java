@@ -4,10 +4,15 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 
 @Entity
-abstract public class Cliente 
+public class Cliente 
 {
    @Id
    protected String identificador;
+
+   @Deprecated
+   public Cliente() 
+   {
+   }
 
    public Cliente(String identificador) {
       this.identificador = identificador;
